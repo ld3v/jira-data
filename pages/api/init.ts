@@ -3,6 +3,7 @@ import { decryptData } from "@/utils/security";
 import { NextApiRequest, NextApiResponse } from "next";
 import $http from "@/utils/request";
 import { JIRA_API } from "@/helper/jira.request";
+import { TBoardJira } from "@/types/jira";
 
 export default async function handler(
   req: NextApiRequest,
@@ -27,21 +28,28 @@ export default async function handler(
         },
         baseURL,
       });
-      const issueTypeData = await $http.get(JIRA_API.issue.ALL_ISSUE_TYPE(), {
-        headers: {
-          Authorization: token,
-        },
-        baseURL,
-      });
 
       const boardData = defaultBoardId
-        ? await $http.get(JIRA_API.board.ONE(defaultBoardId), {
+        ? await $http.get<TBoardJira>(JIRA_API.board.ONE(defaultBoardId), {
             headers: {
               Authorization: token,
             },
             baseURL,
           })
         : null;
+      const issueTypeData = await $http.get(
+        boardData
+          ? JIRA_API.issue.ALL_ISSUE_TYPE_BY_PRJ(
+              boardData.data.location.projectId
+            )
+          : JIRA_API.issue.ALL_ISSUE_TYPE(),
+        {
+          headers: {
+            Authorization: token,
+          },
+          baseURL,
+        }
+      );
       const sprintsData = boardData
         ? await $http.get(JIRA_API.sprint.ALL(Number(defaultBoardId)), {
             headers: { Authorization: token },

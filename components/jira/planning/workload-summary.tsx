@@ -10,20 +10,21 @@ import {
   Col,
   Form,
   FormProps,
-  Input,
   Row,
   Select,
+  SelectProps,
   message,
   notification,
 } from "antd";
 import { useRouter } from "next/router";
-import { useEffect } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import WorkloadInfo from "./workload-info";
+import dayjs from "dayjs";
 
 type TFormSearchStory = {
   storyIssueType: string | number;
   subImplIssueType: string | number;
-  statusTodo: string | number;
+  statuses: string[];
 };
 
 const PlanningWorkload = () => {
@@ -34,26 +35,55 @@ const PlanningWorkload = () => {
   const [issuetypeOptions, issuetypeDic] = useSelectOptions<TJiraIssueType>(
     issuetype,
     "id",
-    "name"
+    "name",
+    (a, b) => b.hierarchyLevel - a.hierarchyLevel
   );
-  const [{ loadingStories, loadingWorkload, stories, workload }, setStates] =
-    useStates<{
-      loadingStories: boolean;
-      loadingWorkload: boolean;
-      stories: TJiraIssue[];
-      workload: TWorkloadSummary | null;
-    }>({
-      loadingStories: false,
-      loadingWorkload: false,
-      stories: [],
-      workload: null,
-    });
+  const [
+    {
+      loadingStories,
+      loadingWorkload,
+      stories,
+      workload,
+      parentIssueTypeId,
+      syncWorkloadTimerValue,
+      lastSyncedPlanningWorkloadAt,
+    },
+    setStates,
+  ] = useStates<{
+    loadingStories: boolean;
+    loadingWorkload: boolean;
+    stories: TJiraIssue[];
+    workload: TWorkloadSummary | null;
+    syncWorkloadTimerValue: number;
+    lastSyncedPlanningWorkloadAt: Date | null;
+    parentIssueTypeId?: string;
+  }>({
+    loadingStories: false,
+    loadingWorkload: false,
+    syncWorkloadTimerValue: 0,
+    lastSyncedPlanningWorkloadAt: null,
+    stories: [],
+    workload: null,
+  });
+  const beforeTimerSyncWorkload = useRef<number>(0);
+  const parentChildIssueTypeOptions = useMemo(
+    () =>
+      issuetypeOptions.map(({ value, label, disabled }) =>
+        parentIssueTypeId &&
+        value &&
+        issuetypeDic[parentIssueTypeId].hierarchyLevel <=
+          issuetypeDic[value].hierarchyLevel
+          ? { value, label, disabled: true }
+          : { value, label, disabled }
+      ),
+    [parentIssueTypeId]
+  );
 
   const [storyOptions, storyDic] = useSelectOptions(stories, "id", "key");
 
   const handleGetTODOStories = (
     storyIssueType: TFormSearchStory["storyIssueType"] = "Story",
-    statusTodo: TFormSearchStory["statusTodo"] = "To do",
+    statuses?: TFormSearchStory["statuses"],
     callback?: () => void
   ) =>
     board && board.id
@@ -61,7 +91,7 @@ const PlanningWorkload = () => {
           {
             boardId: board.id,
             storyIssueType,
-            statusTodo,
+            statuses,
           },
           {
             onLoading: (s) => setStates({ loadingStories: s }),
@@ -74,11 +104,11 @@ const PlanningWorkload = () => {
       : null;
 
   const handleFormSearchStoriesSubmit: FormProps<TFormSearchStory>["onFinish"] =
-    async ({ storyIssueType, statusTodo }) => {
+    async ({ storyIssueType, statuses }) => {
       // Reset query params & stories item
       storyForm.resetFields();
       window.history.replaceState(null, "", router.pathname);
-      await handleGetTODOStories(storyIssueType, statusTodo);
+      await handleGetTODOStories(storyIssueType, statuses);
     };
 
   const handleGetStoriesLink = () => {
@@ -92,7 +122,7 @@ const PlanningWorkload = () => {
     message.info("Copied shared link!");
   };
 
-  const handleGetWorkload = async () => {
+  const handleGetWorkload = async (cb?: () => void) => {
     const { subImplIssueType } = form.getFieldsValue();
     const stories = storyForm.getFieldValue("stories") || [];
     if (!Array.isArray(stories) || stories.length === 0) {
@@ -119,7 +149,10 @@ const PlanningWorkload = () => {
       },
       {
         onLoading: (s) => setStates({ loadingWorkload: s }),
-        onFinish: (d) => setStates({ workload: d }),
+        onFinish: (d) => {
+          setStates({ workload: d });
+          cb?.();
+        },
       }
     );
   };
@@ -131,19 +164,66 @@ const PlanningWorkload = () => {
     });
   }, [board?.id]);
 
+  useEffect(() => {
+    if (
+      beforeTimerSyncWorkload.current === syncWorkloadTimerValue ||
+      syncWorkloadTimerValue === 0
+    )
+      return;
+    beforeTimerSyncWorkload.current = syncWorkloadTimerValue;
+    let timer = setInterval(
+      () =>
+        handleGetWorkload(() =>
+          setStates({ lastSyncedPlanningWorkloadAt: new Date() })
+        ),
+      syncWorkloadTimerValue * 1000
+    );
+
+    if (beforeTimerSyncWorkload.current !== syncWorkloadTimerValue)
+      clearInterval(timer);
+    return () => {
+      clearInterval(timer);
+    };
+  }, [syncWorkloadTimerValue]);
+
+  const handleParentIssueTypeChanged: SelectProps["onChange"] = (value) => {
+    setStates({ parentIssueTypeId: value });
+    const childIssueType = form.getFieldValue("subImplIssueType");
+    if (!childIssueType) return;
+    if (
+      issuetypeDic[childIssueType].hierarchyLevel >=
+      issuetypeDic[value].hierarchyLevel
+    ) {
+      form.setFieldValue("subImplIssueType", undefined);
+    }
+  };
+  const handleParentChildIssueTypeChanged: SelectProps["onChange"] = (
+    value
+  ) => {
+    const parentIssueType = form.getFieldValue("storyIssueType");
+    if (!value) setStates({ syncWorkloadTimerValue: 0 });
+    if (!parentIssueType) return;
+    if (
+      issuetypeDic[parentIssueType].hierarchyLevel <
+      issuetypeDic[value].hierarchyLevel
+    ) {
+      form.setFieldValue("storyIssueType", undefined);
+    }
+  };
+
   return (
     <>
       <Form<TFormSearchStory>
         form={form}
         layout="vertical"
-        initialValues={{ statusTodo: "To do" }}
+        initialValues={{ statuses: ["To do"] }}
         onFinish={handleFormSearchStoriesSubmit}
       >
         <Row className="w-full" gutter={[24, 24]}>
-          <Col span={8}>
+          <Col span={6}>
             <Form.Item
               name="storyIssueType"
-              label="Issue type for Story"
+              label="Parent"
               rules={[
                 { required: true, message: "Please select an issue-type" },
               ]}
@@ -164,26 +244,22 @@ const PlanningWorkload = () => {
                     return true;
                   return false;
                 }}
+                onChange={handleParentIssueTypeChanged}
                 disabled={loadingStories}
               />
             </Form.Item>
           </Col>
-          <Col span={4}>
-            <Form.Item name="statusTodo" label="TODO status">
-              <Input placeholder="To do" disabled={loadingStories} />
-            </Form.Item>
-          </Col>
-          <Col span={8}>
+          <Col span={6}>
             <Form.Item
               name="subImplIssueType"
-              label="Issue type for Sub-Impl"
+              label="Parent's child"
               rules={[
                 { required: true, message: "Please select an issue-type" },
               ]}
             >
               <Select
                 className="w-full"
-                options={issuetypeOptions}
+                options={parentChildIssueTypeOptions}
                 placeholder="Sub-Imp"
                 showSearch
                 filterOption={(keyword, option) => {
@@ -197,8 +273,14 @@ const PlanningWorkload = () => {
                     return true;
                   return false;
                 }}
+                onChange={handleParentChildIssueTypeChanged}
                 disabled={loadingStories}
               />
+            </Form.Item>
+          </Col>
+          <Col span={8}>
+            <Form.Item name="statuses" label="Parent's status">
+              <Select mode="tags" loading={loadingStories} />
             </Form.Item>
           </Col>
           <Col span={4}>
@@ -217,14 +299,25 @@ const PlanningWorkload = () => {
               mode="multiple"
               options={storyOptions}
               loading={loadingStories}
-              placeholder="Select stories to check workload"
+              placeholder="Parent's items"
               optionRender={({ value }) => {
                 if (!value || !storyDic[value]) return undefined;
 
                 return (
                   <>
                     <span className="text-gray-400">
-                      {storyDic[value].key}
+                      <span
+                        className={
+                          storyDic[value].fields.status.name.toLowerCase() ===
+                          "done"
+                            ? "line-through"
+                            : ""
+                        }
+                      >
+                        {storyDic[value].key}
+                      </span>
+                      {" · "}
+                      {storyDic[value].fields.status.name}
                       {" · "}
                     </span>
                     {storyDic[value].fields.summary}
@@ -245,6 +338,10 @@ const PlanningWorkload = () => {
                   return true;
                 return false;
               }}
+              onChange={(v) => {
+                if (!Array.isArray(v) || v.length === 0)
+                  setStates({ syncWorkloadTimerValue: 0 });
+              }}
             />
           </Form.Item>
 
@@ -259,14 +356,56 @@ const PlanningWorkload = () => {
         </div>
       </Form>
 
-      <Button
-        loading={loadingWorkload}
-        disabled={loadingStories || loadingWorkload}
-        onClick={() => handleGetWorkload()}
-        className="mb-3"
-      >
-        Get Workload Estimated
-      </Button>
+      <div className="flex justify-between items-center">
+        <Button
+          loading={loadingWorkload}
+          disabled={loadingStories || loadingWorkload}
+          onClick={() => handleGetWorkload()}
+          className="mb-3"
+        >
+          Get Workload Estimated
+        </Button>
+        <div className="flex items-center gap-5">
+          {lastSyncedPlanningWorkloadAt && (
+            <span className="text-sm text-gray-400">
+              Last sync at{" "}
+              <span className="text-gray-600">
+                {dayjs(lastSyncedPlanningWorkloadAt).format(
+                  "DD/MM/YYYY HH:mm:ss"
+                )}
+              </span>
+            </span>
+          )}
+          <Select
+            value={syncWorkloadTimerValue}
+            className="w-[150px]"
+            options={[
+              { value: 0, label: "sync manually" },
+              { value: 15, label: "each 15 seconds" },
+              { value: 30, label: "each 30 seconds" },
+              { value: 60, label: "each 1 minute" },
+              { value: 900, label: "each 15 minutes" },
+              { value: 1800, label: "each 30 minutes" },
+            ]}
+            onChange={(v) => {
+              const storySelected = storyForm.getFieldValue("stories");
+              const parentChild = form.getFieldValue("subImplIssueType");
+              if (
+                v &&
+                (!Array.isArray(storySelected) ||
+                  storySelected.length === 0 ||
+                  !parentChild)
+              ) {
+                notification.error({
+                  message: "Please select at least one Parent item!",
+                });
+                return;
+              }
+              setStates({ syncWorkloadTimerValue: v });
+            }}
+          />
+        </div>
+      </div>
 
       <WorkloadInfo workload={workload} loading={loadingWorkload} />
     </>

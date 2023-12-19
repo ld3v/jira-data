@@ -5,11 +5,12 @@ import $http from "@/utils/request";
 export async function getTODOStoriesByBoardId(
   {
     boardId,
+    statuses,
     ...params
   }: {
     boardId: number;
     storyIssueType?: number | string;
-    statusTodo?: number | string;
+    statuses?: string[];
   },
   options?: TServiceClientRequest
 ) {
@@ -17,7 +18,13 @@ export async function getTODOStoriesByBoardId(
   onLoading?.(true);
   try {
     const res = await $http.get(`/api/board/${boardId}/todo-stories`, {
-      params: { ...params },
+      params: {
+        statuses:
+          Array.isArray(statuses) && statuses.length > 0
+            ? statuses.join(",")
+            : undefined,
+        ...params,
+      },
     });
     onFinish?.(res.data.issues);
   } catch (err: any) {

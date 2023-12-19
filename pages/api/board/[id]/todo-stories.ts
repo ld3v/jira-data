@@ -26,12 +26,12 @@ export default async function handler(
         return res.status(400).json({ message: "Please provide your boardId" });
       }
       const storyIssueType = req.query.storyIssueType as string;
-      const statusTodo = req.query.statusTodo as string;
+      const statuses = (req.query.statuses as string)?.split(",");
       const jiraSprints = await $http.get(
-        JIRA_API.issue.ALL_STORIES_TODO(
+        JIRA_API.issue.ALL_STORIES(
           Number(boardId),
           storyIssueType || "Story",
-          statusTodo || "To do"
+          statuses
         ),
         {
           headers: { Authorization: token },

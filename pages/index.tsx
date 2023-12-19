@@ -44,14 +44,14 @@ export default function Home() {
 
   if (loading) {
     return (
-      <div className="w-[calc(100%-20px)] max-w-[840px] m-auto p-5">
+      <div className="w-[calc(100%-20px)] max-w-[960px] m-auto p-5">
         <Skeleton active />
       </div>
     );
   }
 
   return (
-    <div className="w-[calc(100%-20px)] max-w-[840px] m-auto p-5">
+    <div className="w-[calc(100%-20px)] max-w-[960px] m-auto p-5">
       <JiraProvider
         user={user}
         board={board}

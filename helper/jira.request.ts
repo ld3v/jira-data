@@ -14,18 +14,27 @@ export const JIRA_API = {
   issue: {
     ALL: (sprintId: number) => `/rest/agile/1.0/sprint/${sprintId}/issue`,
     ALL_ISSUE_TYPE: () => `/rest/api/2/issuetype`,
-    ALL_STORIES_TODO: (
+    ALL_ISSUE_TYPE_BY_PRJ: (projectId: string | number) =>
+      `/rest/api/2/issuetype/project?projectId=${projectId}`,
+    ALL_STORIES: (
       boardId: number,
       issuetypeStory: number | string,
-      statusTodo: number | string
-    ) =>
-      `/rest/agile/1.0/board/${boardId}/issue?fields=summary,parent,timetracking,assignee&maxResults=500&jql=issuetype=${
-        typeof issuetypeStory === "string"
-          ? `"${issuetypeStory}"`
-          : issuetypeStory
-      }+AND+status=${
-        typeof statusTodo === "string" ? `"${statusTodo}"` : statusTodo
-      }`,
+      statuses?: string[]
+    ) => {
+      const jql = [
+        `issuetype=${
+          typeof issuetypeStory === "string"
+            ? `"${issuetypeStory}"`
+            : issuetypeStory
+        }`,
+        statuses
+          ? `status in (${statuses.map((s) => `"${s}"`).join(", ")})`
+          : undefined,
+      ]
+        .filter((p) => p)
+        .join("+AND+");
+      return `/rest/agile/1.0/board/${boardId}/issue?fields=summary,parent,timetracking,assignee,status&maxResults=500&jql=${jql}`;
+    },
     BY_ISSUES: (boardId: number, issueIds?: (number | string)[]) =>
       `/rest/agile/1.0/board/${boardId}/issue?fields=subtasks,summary,status,timetracking,assignee,issuetype,parent&maxResults=500&jql=${
         issueIds ? `issue in (${issueIds.join(", ")})` : ""
