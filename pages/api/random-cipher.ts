@@ -7,6 +7,7 @@ export default async function handler(
 ) {
   const iv = crypto.randomBytes(16).toString("hex");
   const sr = crypto.randomBytes(32).toString("hex");
+  console.log(iv, sr);
 
-  res.json({ iv, sr });
+  res.json({ message: "Nothing to see" });
 }

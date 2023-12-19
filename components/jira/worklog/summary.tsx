@@ -8,7 +8,7 @@ import $http from "@/utils/request";
 import { Button, Select, notification } from "antd";
 import { useEffect, useMemo } from "react";
 import WorklogPerSprintChart from "./sprint.chart";
-import { TSprintJira } from "@/types/jira";
+import { TPaginationJira, TSprintJira } from "@/types/jira";
 
 const MyWorklogSummary = () => {
   const { user, currentSprint, board, setData } = useJiraUser();
@@ -66,10 +66,15 @@ const MyWorklogSummary = () => {
     }
     setSummaryData({ loadingSprint: true });
     try {
-      const res = await $http.get("/api/sprint", {
+      const res = await $http.get<TPaginationJira<TSprintJira>>("/api/sprint", {
         params: { boardId: board.id },
       });
       setSummaryData({ sprints: res.data.values });
+      const activeSprint = res.data.values.find((s) => s.state === "active");
+      if (activeSprint) {
+        setData({ currentSprint: activeSprint });
+        summaryWorklogData();
+      }
     } catch (err: any) {
       notification.error({ message: err.message });
     } finally {
@@ -95,7 +100,7 @@ const MyWorklogSummary = () => {
     <>
       <div className="flex items-center mb-2">
         <Select
-          defaultValue={currentSprint?.id}
+          value={currentSprint?.id}
           options={sprintOptions}
           loading={loadingSprint}
           placeholder="Select a sprint"

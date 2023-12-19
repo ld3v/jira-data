@@ -30,7 +30,7 @@ export default async function handler(
           `_thinkWith=${encryptedToken}; secure; maxAge=1296000`
         );
       }
-      res.status(200).json(jiraData.data);
+      return res.status(200).json(jiraData.data);
     } catch (err: any) {
       console.error(err);
       return res.status(400).json({

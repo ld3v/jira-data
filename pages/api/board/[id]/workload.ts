@@ -55,9 +55,9 @@ export default async function handler(
           baseURL,
         }
       );
-      res.status(200).json(workloadData);
+      return res.status(200).json(workloadData);
     } catch (err: any) {
-      res.status(400).json({
+      return res.status(400).json({
         message: "Failed",
         details: err.response?.data?.errorMessages || [],
       });

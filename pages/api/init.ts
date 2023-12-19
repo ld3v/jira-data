@@ -8,7 +8,6 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-  console.log("origin", req.headers.host);
   if (req.method === "GET") {
     const authToken = cookie.parse(req.headers.cookie || "")._thinkWith;
     if (!authToken) {
@@ -50,7 +49,7 @@ export default async function handler(
           })
         : null;
 
-      res.status(200).json({
+      return res.status(200).json({
         user: jiraData.data,
         board: boardData ? boardData.data : undefined,
         sprints: sprintsData ? sprintsData.data : undefined,

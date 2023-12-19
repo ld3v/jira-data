@@ -36,14 +36,14 @@ const InternalAuthCard: React.FC<IAuthCard> = ({ className, onResetUser }) => {
     baseURL,
     username,
     accessToken,
-    remember,
   }) => {
     try {
+      setLoading(true);
       const res = await $http.post(
         "/api/me",
         {
           baseURL: `https://${baseURL}`,
-          remember,
+          remember: true,
         },
         {
           auth: {
@@ -58,6 +58,8 @@ const InternalAuthCard: React.FC<IAuthCard> = ({ className, onResetUser }) => {
       notification.error({
         message: err.response?.data?.message || err.message,
       });
+    } finally {
+      setLoading(false);
     }
   };
   const handleReset = () => {
@@ -119,17 +121,14 @@ const InternalAuthCard: React.FC<IAuthCard> = ({ className, onResetUser }) => {
         </div>
 
         <div className="flex items-center justify-between">
-          <Form.Item name="remember" noStyle valuePropName="checked">
-            <Checkbox>Save my AUTH info</Checkbox>
-          </Form.Item>
           <Button htmlType="submit" type="dashed">
             Submit
           </Button>
         </div>
       </Form>
       <div className="italic text-gray-400">
-        In case you want to remember your auth info, your username & access
-        token will be store on <b>your browser only</b> (cookie).
+        Your username & access token will be store on <b>your browser only</b>{" "}
+        (cookie).
         <br />
         To protect these information, we will <b>encrypt</b> them to protect
         yourself.

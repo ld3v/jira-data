@@ -10,10 +10,14 @@ import { Select, Spin } from "antd";
 import dayjs from "dayjs";
 import { useMemo } from "react";
 import {
+  Area,
+  AreaChart,
   Bar,
   BarChart,
   CartesianGrid,
   Legend,
+  Line,
+  LineChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -41,38 +45,65 @@ const WorklogPerSprintChart: React.FC<{
   const dataRendered = useMemo(() => {
     const members: { [accountId: string]: TSummaryWorklog } = {};
     const dates = Object.keys(data).sort(sortByDate());
-    const chart = dates.map((date) => {
-      const timeSpentByMembers: TTimeSpentByPerson = Object.keys(
-        data[date]
-      ).reduce((p: TTimeSpentByPerson, c) => {
-        const user = data[date][c];
-        if (!user) return p;
+    const chart = dates
+      .filter((d) => (selectedDate ? d === selectedDate : true))
+      .map((date) => {
+        const timeSpentByMembers: TTimeSpentByPerson = Object.keys(
+          data[date]
+        ).reduce((p: TTimeSpentByPerson, c) => {
+          const user = data[date][c];
+          if (!user) return p;
 
-        members[user.accountId] = user;
+          members[user.accountId] = user;
 
-        p[user.name] = user.secsSpent;
-        return p;
-      }, {});
-      return {
-        date,
-        ...timeSpentByMembers,
-      };
-    });
+          p[user.name] = user.secsSpent;
+          return p;
+        }, {});
+        return {
+          date,
+          ...timeSpentByMembers,
+        };
+      });
 
     return {
       members,
       chart,
       dates,
     };
-  }, [data]);
+  }, [data, selectedDate]);
 
   return (
     <Spin spinning={loading}>
       <div className="w-full h-full border border-dashed border-gray-400 rounded-md p-2">
         <div className="relative w-full h-[480px]">
           <ResponsiveContainer width="100%" height={480}>
-            <BarChart data={dataRendered.chart}>
-              <CartesianGrid strokeDasharray="3 3" />
+            <AreaChart data={dataRendered.chart}>
+              <defs>
+                {Object.keys(dataRendered.members)
+                  .filter((m) => (selectedMember ? m === selectedMember : m))
+                  .map((mem, memI) => (
+                    <linearGradient
+                      id={`color_${memI}`}
+                      x1="0"
+                      y1="0"
+                      x2="0"
+                      y2="1"
+                      key={`def_${mem}`}
+                    >
+                      <stop
+                        offset="5%"
+                        stopColor={COLORS[memI]}
+                        stopOpacity={0.1}
+                      />
+                      <stop
+                        offset="95%"
+                        stopColor={COLORS[memI]}
+                        stopOpacity={0}
+                      />
+                    </linearGradient>
+                  ))}
+              </defs>
+              <CartesianGrid stroke="#eee" strokeDasharray="3 3" />
               <XAxis dataKey="date" />
               <YAxis tickFormatter={formaSToHm} />
               <Tooltip formatter={formaSToHm} />
@@ -80,13 +111,22 @@ const WorklogPerSprintChart: React.FC<{
               {Object.keys(dataRendered.members)
                 .filter((m) => (selectedMember ? m === selectedMember : m))
                 .map((mem, memI) => (
-                  <Bar
+                  // <Line
+                  //   type="monotone"
+                  //   dataKey={dataRendered.members[mem].name}
+                  //   stroke={COLORS[memI]}
+                  //   key={mem}
+                  // />
+                  <Area
+                    type="monotone"
                     dataKey={dataRendered.members[mem].name}
-                    fill={COLORS[memI]}
+                    stroke={COLORS[memI]}
+                    fillOpacity={1}
+                    fill={`url(#color_${memI})`}
                     key={mem}
                   />
                 ))}
-            </BarChart>
+            </AreaChart>
           </ResponsiveContainer>
         </div>
       </div>
@@ -99,7 +139,6 @@ const WorklogPerSprintChart: React.FC<{
           value={selectedDate}
           onChange={(v) => setStates({ selectedDate: v })}
           allowClear
-          disabled
         />
         <Select
           className="w-48"

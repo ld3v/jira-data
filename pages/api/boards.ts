@@ -26,7 +26,7 @@ export default async function handler(
         },
         baseURL,
       });
-      res.status(200).json(jiraData.data);
+      return res.status(200).json(jiraData.data);
     } catch (err: any) {
       console.error(err);
       return res
@@ -50,7 +50,7 @@ export default async function handler(
         "Set-Cookie",
         `_thinkWith=${newToken}; secure; maxAge=1296000`
       );
-      res.status(200).json({
+      return res.status(200).json({
         defaultBoardId: boardId,
       });
     } catch (err: any) {

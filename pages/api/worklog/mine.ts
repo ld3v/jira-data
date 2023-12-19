@@ -32,7 +32,7 @@ export default async function handler(
         baseURL,
         headers: { Authorization: token },
       });
-      res.status(200).json(jiraWorklog);
+      return res.status(200).json(jiraWorklog);
     } catch (err: any) {
       return res.status(400).json({ message: "Failed" });
     }
