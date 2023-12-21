@@ -4,7 +4,8 @@ import {
   TWorkloadByAssignee,
   TWorkloadSummary,
 } from "@/types/jira";
-import { Popover, Table } from "antd";
+import { TJiraIssue } from "@/types/jira/issue.type";
+import { Collapse, Popover, Table } from "antd";
 import { useMemo } from "react";
 
 interface IWorkloadInfo {
@@ -19,9 +20,10 @@ const WorkloadInfo: React.FC<IWorkloadInfo> = ({ workload, loading }) => {
   );
 
   if (!workload) return null;
+  console.log(workload);
 
   return (
-    <div className="flex">
+    <div className="flex gap-2">
       <div className="w-80">
         <Table<TWorkloadByAssignee>
           loading={loading}
@@ -60,6 +62,61 @@ const WorkloadInfo: React.FC<IWorkloadInfo> = ({ workload, loading }) => {
           tableLayout="fixed"
           dataSource={workloadByAssignee}
           pagination={false}
+        />
+      </div>
+      <div className="w-[calc(100%-328px)]">
+        <Collapse
+          items={Object.keys(workload.story).map((storyKey) => ({
+            key: storyKey,
+            label: (
+              <>
+                <span className="text-gray-400">
+                  {workload.story[storyKey].key}
+                </span>
+                {" · "}
+                {workload.story[storyKey].fields.summary}
+              </>
+            ),
+            children: (
+              <Table<TJiraIssue>
+                pagination={false}
+                dataSource={[
+                  ...workload.story[storyKey].subImplAssigned.map(
+                    (subKey) => workload.subImplAssigned[subKey]
+                  ),
+                  ...workload.story[storyKey].subImplUnassigned.map(
+                    (subKey) => workload.subImplUnassigned[subKey]
+                  ),
+                ]}
+                columns={[
+                  {
+                    title: "Item",
+                    dataIndex: "key",
+                    render: (value, { fields }) =>
+                      `${value} - ${fields.summary}`,
+                  },
+                  {
+                    title: "Est.",
+                    dataIndex: "fields",
+                    render: (_, { fields }) => {
+                      const time = fields.timetracking;
+
+                      return time.originalEstimate;
+                    },
+                  },
+                  {
+                    title: "Assignee",
+                    dataIndex: "fields",
+                    render: (_, { fields }) => {
+                      const assignee = fields.assignee;
+
+                      return assignee?.displayName || "--";
+                    },
+                  },
+                ]}
+              />
+            ),
+          }))}
         />
       </div>
     </div>
