@@ -16,10 +16,14 @@ export default async function handler(
   }
   if (req.method === "GET") {
     try {
-      const { baseURL, token, defaultBoardId } = decryptData<{
+      const {
+        baseURL,
+        token,
+        defaultValues: { boardId: defaultBoardId } = {},
+      } = decryptData<{
         baseURL: string;
         token: string;
-        defaultBoardId?: number;
+        defaultValues?: { boardId?: number };
       }>(authToken);
       const boardId = req.query.boardId || defaultBoardId;
       if (!boardId) {

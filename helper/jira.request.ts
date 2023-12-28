@@ -1,3 +1,11 @@
+import Joi from "joi";
+import { validate } from "./validate";
+
+const numOrStr = (inp: number | string) =>
+  !validate({ inp: Joi.number().required() })({ inp: inp })
+    ? (inp as number)
+    : `"${inp}"`;
+
 export const JIRA_API = {
   user: {
     ME: "/rest/api/2/myself",
@@ -16,24 +24,36 @@ export const JIRA_API = {
     ALL_ISSUE_TYPE: () => `/rest/api/2/issuetype`,
     ALL_ISSUE_TYPE_BY_PRJ: (projectId: string | number) =>
       `/rest/api/2/issuetype/project?projectId=${projectId}`,
-    ALL_STORIES: (
+    ALL_ISSUES: (
       boardId: number,
-      issuetypeStory: number | string,
-      statuses?: string[]
+      {
+        issueType,
+        sprintId,
+        statuses,
+        parent,
+      }: {
+        issueType: number | string;
+        sprintId?: number | string;
+        statuses?: string[];
+        parent?: string[];
+      }
     ) => {
       const jql = [
-        `issuetype=${
-          typeof issuetypeStory === "string"
-            ? `"${issuetypeStory}"`
-            : issuetypeStory
-        }`,
+        sprintId ? `sprint=${sprintId}` : "",
+        `issuetype=${numOrStr(issueType)}`,
         statuses
-          ? `status in (${statuses.map((s) => `"${s}"`).join(", ")})`
+          ? `status in (${statuses.map((s) => numOrStr(s)).join(", ")})`
+          : undefined,
+        parent
+          ? `parent in (${parent.map((s) => numOrStr(s)).join(", ")})`
           : undefined,
       ]
         .filter((p) => p)
         .join("+AND+");
-      return `/rest/agile/1.0/board/${boardId}/issue?fields=summary,parent,timetracking,assignee,status&maxResults=500&jql=${jql}`;
+      console.debug(
+        `-- /rest/agile/1.0/board/${boardId}/issue?fields=summary,parent,duedate,timetracking,assignee,status,subtasks,issuelinks&maxResults=500&jql=${jql}`
+      );
+      return `/rest/agile/1.0/board/${boardId}/issue?fields=summary,parent,duedate,timetracking,assignee,status,subtasks,issuelinks&maxResults=500&jql=${jql}`;
     },
     BY_ISSUES: (boardId: number, issueIds?: (number | string)[]) =>
       `/rest/agile/1.0/board/${boardId}/issue?fields=subtasks,summary,status,timetracking,assignee,issuetype,parent&maxResults=500&jql=${

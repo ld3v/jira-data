@@ -2,14 +2,16 @@ import { notification } from "antd";
 import { TServiceClientRequest } from ".";
 import $http from "@/utils/request";
 
-export async function getTODOStoriesByBoardId(
+export async function getIssueByBoardAndIssueType(
   {
     boardId,
     statuses,
     ...params
   }: {
     boardId: number;
-    storyIssueType?: number | string;
+    issueType?: number | string;
+    subIssueType?: number | string;
+    sprintId?: number | string;
     statuses?: string[];
   },
   options?: TServiceClientRequest
@@ -17,7 +19,7 @@ export async function getTODOStoriesByBoardId(
   const { onFinish, onLoading } = options || {};
   onLoading?.(true);
   try {
-    const res = await $http.get(`/api/board/${boardId}/todo-stories`, {
+    const res = await $http.get(`/api/board/${boardId}/issues`, {
       params: {
         statuses:
           Array.isArray(statuses) && statuses.length > 0

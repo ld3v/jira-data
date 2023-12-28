@@ -1,7 +1,7 @@
 export type TSprintJira = {
   id: number;
   self: string;
-  state: 'closed' | 'active';
+  state: "closed" | "active" | "future";
   name: string;
   startDate: string;
   endDate: string;

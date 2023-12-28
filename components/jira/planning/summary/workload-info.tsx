@@ -20,7 +20,6 @@ const WorkloadInfo: React.FC<IWorkloadInfo> = ({ workload, loading }) => {
   );
 
   if (!workload) return null;
-  console.log(workload);
 
   return (
     <div className="flex gap-2">

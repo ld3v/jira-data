@@ -18,6 +18,8 @@ export type TJiraIssue = {
     timetracking: TJiraTimeTracking;
     issuetype: TJiraIssueType;
     assignee: TAuthorJira;
+    duedate: string; // 'YYYY-MM-DD'
+    issuelinks: TJiraIssueLink[];
     subtasks: TJiraIssue[];
   };
 };
@@ -66,9 +68,17 @@ export type TJiraIssueType = {
   hierarchyLevel: number;
 };
 
-export type TStoryTodo = {
-  id: TJiraIssue["id"];
-  key: TJiraIssue["key"];
-  summary: TJiraIssue["fields"]["summary"];
-  timetracking: TJiraIssue["fields"]["timetracking"];
+export type TJiraIssueLink = {
+  id: string;
+  self: string;
+  type: TJiraIssueLinkType;
+  outwardIssue?: TJiraIssue;
+  inwardIssue?: TJiraIssue;
+};
+export type TJiraIssueLinkType = {
+  id: string;
+  name: string;
+  inward: string;
+  outward: string;
+  self: string;
 };

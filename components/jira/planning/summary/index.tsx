@@ -1,7 +1,7 @@
-import { useJiraUser } from "@/context/jira";
+import { useJira } from "@/context/jira";
 import useSelectOptions from "@/hooks/use-select-options";
 import useStates from "@/hooks/use-states";
-import { getTODOStoriesByBoardId } from "@/services/client/issue";
+import { getIssueByBoardAndIssueType } from "@/services/client/issue";
 import { getWorkloadByStories } from "@/services/client/workload";
 import { TWorkloadSummary } from "@/types/jira";
 import { TJiraIssue, TJiraIssueType } from "@/types/jira/issue.type";
@@ -31,9 +31,9 @@ const PlanningWorkload = () => {
   const router = useRouter();
   const [form] = Form.useForm<TFormSearchStory>();
   const [storyForm] = Form.useForm<{ stories: string[] }>();
-  const { board, issuetype } = useJiraUser();
+  const { board, issuetype } = useJira();
   const [issuetypeOptions, issuetypeDic] = useSelectOptions<TJiraIssueType>(
-    issuetype,
+    issuetype.items,
     "id",
     "name",
     (a, b) => b.hierarchyLevel - a.hierarchyLevel
@@ -86,11 +86,11 @@ const PlanningWorkload = () => {
     statuses?: TFormSearchStory["statuses"],
     callback?: () => void
   ) =>
-    board && board.id
-      ? getTODOStoriesByBoardId(
+    board && board.selected
+      ? getIssueByBoardAndIssueType(
           {
-            boardId: board.id,
-            storyIssueType,
+            boardId: board.selected,
+            issueType: storyIssueType,
             statuses,
           },
           {
@@ -135,7 +135,7 @@ const PlanningWorkload = () => {
       });
       return;
     }
-    if (!board || !board.id) {
+    if (!board || !board.selected) {
       notification.error({
         message: "Unexpected error when try to retrieve the boardID",
       });
@@ -143,7 +143,7 @@ const PlanningWorkload = () => {
     }
     await getWorkloadByStories(
       {
-        boardId: board.id,
+        boardId: board.selected,
         subImplIssueType,
         storyIds: stories,
       },
@@ -162,7 +162,7 @@ const PlanningWorkload = () => {
     handleGetTODOStories(undefined, undefined, () => {
       storyForm.setFieldValue("stories", stories);
     });
-  }, [board?.id]);
+  }, [board.selected]);
 
   useEffect(() => {
     if (

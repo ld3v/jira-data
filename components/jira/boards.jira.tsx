@@ -1,60 +1,42 @@
-import { useJiraUser } from "@/context/jira";
-import { TBoardJira, TSprintJira } from "@/types/jira";
+import { useJira } from "@/context/jira";
+import useSelectOptions from "@/hooks/use-select-options";
+import { getBoards } from "@/services/client/board";
+import { getSprintsByBoardId } from "@/services/client/sprint";
 import $http from "@/utils/request";
 import { Button, Card, Checkbox, Form, Select, notification } from "antd";
-import {
-  forwardRef,
-  useEffect,
-  useImperativeHandle,
-  useMemo,
-  useState,
-} from "react";
+import { forwardRef, useEffect, useImperativeHandle, useState } from "react";
 
 export interface IJiraBoards {
   className?: string;
+  show?: boolean;
 }
 
 export type TJiraBoardsRef = {
   fetchBoards: () => Promise<void>;
+  fetchSprints: () => Promise<void>;
   resetBoards: () => void;
 };
 
 const InternalJiraBoards = forwardRef<TJiraBoardsRef, IJiraBoards>(
-  ({ className }, ref) => {
+  ({ className, show = true }, ref) => {
     const [form] = Form.useForm();
 
-    const [boards, setBoards] = useState<TBoardJira[]>([]);
     const [saving, setSaving] = useState<boolean>(false);
-    const { user, board, currentSprint, setData } = useJiraUser();
-    const boardOptions = useMemo(
-      () =>
-        boards.map((b) => ({
-          value: b.id,
-          label: (
-            <span>
-              <span className="text-gray-400">
-                {b.location.projectName || "<no-project>"}
-              </span>
-              {" · "}
-              {b.name}
-            </span>
-          ),
-        })),
-      [boards]
+    const { user, board, sprint, setData } = useJira();
+    const [boardOptions] = useSelectOptions(
+      board.items,
+      "id",
+      ({ location, name }) => (
+        <span>
+          <span className="text-gray-400">
+            {location.projectName || "<no-project>"}
+          </span>
+          {" · "}
+          {name}
+        </span>
+      )
     );
-    const [loading, setLoading] = useState<boolean>(false);
 
-    const getBoards = async () => {
-      setLoading(true);
-      try {
-        const res = await $http.get("/api/boards");
-        setBoards(res.data.values);
-      } catch (err: any) {
-        notification.error({ message: err.message });
-      } finally {
-        setLoading(false);
-      }
-    };
     const saveBoardAsDefault = async (isDefault: boolean) => {
       const boardId = form.getFieldValue("board");
       if (!boardId) {
@@ -76,32 +58,47 @@ const InternalJiraBoards = forwardRef<TJiraBoardsRef, IJiraBoards>(
       }
     };
 
+    const getSprints = () =>
+      getSprintsByBoardId(
+        { boardId: board.selected },
+        {
+          onFinish: (d) => setData({ cmd: "sprint", payload: { items: d } }),
+          onLoading: (d) => setData({ cmd: "sprint", payload: { loading: d } }),
+        }
+      );
+    const fetchBoards = () =>
+      getBoards({
+        onFinish: (d) => setData({ cmd: "board", payload: { items: d } }),
+        onLoading: (d) => setData({ cmd: "board", payload: { loading: d } }),
+      });
+
     useImperativeHandle(ref, () => ({
-      fetchBoards: getBoards,
+      fetchBoards,
+      fetchSprints: () => getSprints(),
       resetBoards: () => {
-        setBoards([]);
+        setData({ cmd: "board", payload: { items: [], selected: undefined } });
       },
     }));
 
     useEffect(() => {
-      getBoards();
-    }, []);
+      getSprints();
+    }, [board.selected]);
 
     const handleSelectBoard = async (boardIdSelected: number) => {
       const isSetAsDefault = form.getFieldValue("default");
-      setData({ board: boards.find((b) => b.id === boardIdSelected) });
+      setData({ cmd: "board", payload: { selected: boardIdSelected } });
       await saveBoardAsDefault(isSetAsDefault);
     };
 
-    if (!user) return null;
+    if (!user || !show) return null;
 
     return (
       <Card className={className}>
         <Form
           form={form}
           initialValues={{
-            board: board?.id,
-            sprint: currentSprint?.id,
+            board: board.selected,
+            sprint: sprint.selected,
             default: !!board,
           }}
         >
@@ -118,7 +115,7 @@ const InternalJiraBoards = forwardRef<TJiraBoardsRef, IJiraBoards>(
             >
               <Select
                 options={boardOptions}
-                loading={loading}
+                loading={board.loading}
                 placeholder="Select a board"
                 className="w-[calc(100%-40px)]"
                 onChange={handleSelectBoard}
@@ -128,8 +125,8 @@ const InternalJiraBoards = forwardRef<TJiraBoardsRef, IJiraBoards>(
             <Button
               className="ml-2"
               type="link"
-              onClick={() => getBoards()}
-              disabled={loading}
+              onClick={fetchBoards}
+              disabled={board.loading}
             >
               sync
             </Button>
@@ -137,7 +134,7 @@ const InternalJiraBoards = forwardRef<TJiraBoardsRef, IJiraBoards>(
           <Form.Item name="default" valuePropName="checked" noStyle>
             <Checkbox
               onChange={({ target }) => saveBoardAsDefault(target.checked)}
-              disabled={saving || loading}
+              disabled={saving || board.loading}
             >
               Set as default {saving && "(saving...)"}
             </Checkbox>

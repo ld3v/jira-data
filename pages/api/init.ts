@@ -3,7 +3,8 @@ import { decryptData } from "@/utils/security";
 import { NextApiRequest, NextApiResponse } from "next";
 import $http from "@/utils/request";
 import { JIRA_API } from "@/helper/jira.request";
-import { TBoardJira } from "@/types/jira";
+import { TBoardJira, TPaginationJira, TSprintJira } from "@/types/jira";
+import { TIssuePagination } from "@/types/jira/issue.type";
 
 export default async function handler(
   req: NextApiRequest,
@@ -17,10 +18,14 @@ export default async function handler(
       });
     }
     try {
-      const { baseURL, token, defaultBoardId } = decryptData<{
+      const {
+        baseURL,
+        token,
+        defaultValues: { boardId } = {},
+      } = decryptData<{
         baseURL: string;
         token: string;
-        defaultBoardId?: number;
+        defaultValues?: { boardId?: number };
       }>(authToken);
       const jiraData = await $http.get(JIRA_API.user.ME, {
         headers: {
@@ -29,14 +34,23 @@ export default async function handler(
         baseURL,
       });
 
-      const boardData = defaultBoardId
-        ? await $http.get<TBoardJira>(JIRA_API.board.ONE(defaultBoardId), {
+      const boardsData = jiraData.data
+        ? await $http.get<TPaginationJira<TBoardJira>>(JIRA_API.board.ALL, {
             headers: {
               Authorization: token,
             },
             baseURL,
           })
         : null;
+      const boardData =
+        boardId && boardsData
+          ? await $http.get<TBoardJira>(JIRA_API.board.ONE(boardId), {
+              headers: {
+                Authorization: token,
+              },
+              baseURL,
+            })
+          : null;
       const issueTypeData = await $http.get(
         boardData
           ? JIRA_API.issue.ALL_ISSUE_TYPE_BY_PRJ(
@@ -51,16 +65,20 @@ export default async function handler(
         }
       );
       const sprintsData = boardData
-        ? await $http.get(JIRA_API.sprint.ALL(Number(defaultBoardId)), {
-            headers: { Authorization: token },
-            baseURL,
-          })
+        ? await $http.get<TPaginationJira<TSprintJira>>(
+            JIRA_API.sprint.ALL(Number(boardId)),
+            {
+              headers: { Authorization: token },
+              baseURL,
+            }
+          )
         : null;
 
       return res.status(200).json({
         user: jiraData.data,
         board: boardData ? boardData.data : undefined,
-        sprints: sprintsData ? sprintsData.data : undefined,
+        boards: boardsData ? boardsData.data.values : undefined,
+        sprints: sprintsData ? sprintsData.data.values : undefined,
         issuetype: issueTypeData.data,
       });
     } catch (err: any) {

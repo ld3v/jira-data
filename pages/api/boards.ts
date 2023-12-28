@@ -42,7 +42,7 @@ export default async function handler(
         token: string;
       }>(authToken);
       const newPayload = boardId
-        ? { token, baseURL, defaultBoardId: boardId }
+        ? { token, baseURL, defaultValues: { boardId } }
         : { token, baseURL };
       const newToken = encryptData(JSON.stringify(newPayload));
 

@@ -6,10 +6,9 @@ import { useMemo } from "react";
 const useSelectOptions = <T extends any>(
   data: T[] = [],
   dataKey: keyof T,
-  dataLabel: keyof T,
+  dataLabel: keyof T | ((item: T) => React.ReactElement | string),
   optionsSort?: CompareFn<T>
 ): [DefaultOptionType[], Record<string, T>] => {
-  [].sort;
   const optionDic = useMemo(() => {
     const res: Record<string, any> = {};
     let options = data.map((dataItem) => {
@@ -18,7 +17,10 @@ const useSelectOptions = <T extends any>(
 
       return {
         value: dataItemKey,
-        label: get(dataItem, dataLabel),
+        label:
+          typeof dataLabel === "function"
+            ? dataLabel(dataItem)
+            : get(dataItem, dataLabel),
       };
     });
     if (optionsSort)

@@ -1,20 +1,21 @@
-import { useJiraUser } from "@/context/jira";
+import { useJira } from "@/context/jira";
 import { TUserJira } from "@/types/jira";
 import $http from "@/utils/request";
 import {
   Alert,
   Button,
   Card,
-  Checkbox,
   Form,
   FormProps,
   Input,
+  message,
   notification,
 } from "antd";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 
 export interface IAuthCard {
   className?: string;
+  showUserInfo?: boolean;
   onGotUser?: (data: TUserJira) => void;
   onResetUser?: () => void;
 }
@@ -28,9 +29,13 @@ type TInternalFormValues = {
   remember: boolean;
 };
 
-const InternalAuthCard: React.FC<IAuthCard> = ({ className, onResetUser }) => {
+const InternalAuthCard: React.FC<IAuthCard> = ({
+  className,
+  showUserInfo = true,
+  onResetUser,
+}) => {
   const [loading, setLoading] = useState<boolean>(false);
-  const { user, setData } = useJiraUser();
+  const { user, setData } = useJira();
   const [form] = Form.useForm();
   const handleSubmit: FormProps<TInternalFormValues>["onFinish"] = async ({
     baseURL,
@@ -52,7 +57,7 @@ const InternalAuthCard: React.FC<IAuthCard> = ({ className, onResetUser }) => {
           },
         }
       );
-      setData({ user: res.data });
+      setData({ cmd: "user", payload: res.data });
       form.resetFields();
     } catch (err: any) {
       notification.error({
@@ -62,12 +67,16 @@ const InternalAuthCard: React.FC<IAuthCard> = ({ className, onResetUser }) => {
       setLoading(false);
     }
   };
-  const handleReset = () => {
+  const handleReset = async () => {
+    await $http.post("/api/reset");
     form.resetFields();
     onResetUser?.();
+    message.info("Reload this page after 5s");
+    setTimeout(() => location.reload(), 5000);
   };
 
   if (user) {
+    if (!showUserInfo) return null;
     return (
       <Alert
         message={

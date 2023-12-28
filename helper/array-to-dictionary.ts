@@ -14,3 +14,14 @@ export const arrayToDictionary = <T = any, E = any>(
 
   return { dic, keys };
 };
+
+export const arrayToDicIfOk = <T = any, E = any>(
+  array?: T[],
+  keyIndex: keyof T = "id" as keyof T,
+  extraProps: any = {}
+): Record<string, T & E> =>
+  Array.isArray(array) && array.length > 0
+    ? arrayToDictionary(array, keyIndex, extraProps).dic
+    : {};
+
+export const uniqueArr = <T>(arr: T[]): T[] => Array.from(new Set([...arr]));
