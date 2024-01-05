@@ -1,6 +1,9 @@
 import { JiraAuth, JiraBoards } from "@/components/jira";
 import { TJiraBoardsRef } from "@/components/jira/boards.jira";
-import { arrayToDicIfOk } from "@/helper/array-to-dictionary";
+import {
+  arrayToDicIfOk,
+  arrayToDictionary,
+} from "@/helper/array-to-dictionary";
 import useStates from "@/hooks/use-states";
 import { TBoardJira, TSprintJira, TUserJira } from "@/types/jira";
 import { TJiraIssueType } from "@/types/jira/issue.type";
@@ -8,6 +11,7 @@ import $http from "@/utils/request";
 import { Skeleton, notification } from "antd";
 import Head from "next/head";
 import React, { useEffect, useRef } from "react";
+import { twMerge } from "tailwind-merge";
 
 export type TJiraData<T = any> = {
   selected?: number;
@@ -113,7 +117,15 @@ const JiraProvider: React.FC<TJiraProviderProps> = ({
         });
         break;
       case "issuetype":
-        setIssueTypeState(payload);
+        const issueTypeDic = arrayToDicIfOk(payload.items, "id");
+        setIssueTypeState({
+          ...payload,
+          dic: {
+            ...issueTypeState.dic,
+            ...issueTypeDic,
+            ...(payload.dic || {}),
+          },
+        });
         break;
       case "loading":
         setBoardState({ loading: payload });
@@ -201,7 +213,7 @@ const JiraProvider: React.FC<TJiraProviderProps> = ({
   }
 
   return (
-    <div className={className}>
+    <div className={twMerge("flex flex-col gap-5", className)}>
       <JiraContext.Provider
         value={{
           user,
@@ -213,13 +225,12 @@ const JiraProvider: React.FC<TJiraProviderProps> = ({
         }}
       >
         <JiraAuth
-          className="mb-5"
           showUserInfo={showUserInfo}
           onResetUser={handleReset}
+          onGotUser={() => handleInit()}
         />
         <JiraBoards
           ref={(r) => (boardsRef.current = r || undefined)}
-          className="mb-5"
           show={showBoardSelect}
         />
         {children}

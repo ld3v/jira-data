@@ -16,7 +16,7 @@ import React, { useState } from "react";
 export interface IAuthCard {
   className?: string;
   showUserInfo?: boolean;
-  onGotUser?: (data: TUserJira) => void;
+  onGotUser?: (data: TUserJira) => Promise<void> | void;
   onResetUser?: () => void;
 }
 
@@ -33,6 +33,7 @@ const InternalAuthCard: React.FC<IAuthCard> = ({
   className,
   showUserInfo = true,
   onResetUser,
+  onGotUser,
 }) => {
   const [loading, setLoading] = useState<boolean>(false);
   const { user, setData } = useJira();
@@ -58,6 +59,7 @@ const InternalAuthCard: React.FC<IAuthCard> = ({
         }
       );
       setData({ cmd: "user", payload: res.data });
+      onGotUser?.(res.data);
       form.resetFields();
     } catch (err: any) {
       notification.error({

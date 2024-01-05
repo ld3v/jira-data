@@ -1,1 +1,3 @@
 export type TDic<T> = Record<string, T>;
+export type TArrayElement<ArrayType extends readonly unknown[]> =
+  ArrayType extends readonly (infer ElementType)[] ? ElementType : never;

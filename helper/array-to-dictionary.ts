@@ -15,7 +15,7 @@ export const arrayToDictionary = <T = any, E = any>(
   return { dic, keys };
 };
 
-export const arrayToDicIfOk = <T = any, E = any>(
+export const arrayToDicIfOk = <T = any, E = object>(
   array?: T[],
   keyIndex: keyof T = "id" as keyof T,
   extraProps: any = {}

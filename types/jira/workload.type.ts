@@ -19,3 +19,16 @@ export type TWorkloadByAssignee = {
   workload: number;
   tickets: { key: TJiraIssue["key"]; timetracking: TJiraTimeTracking }[];
 };
+
+export type TWorkloadResponse = {
+  id: string | number;
+  key: string; // issueKey, Ex: APM-1234
+  summary: string;
+  issueType: string;
+  duedate: string;
+  assignee: TAuthorJira;
+  status?: string;
+  originalEstimateSeconds?: number;
+  remainingEstimateSeconds?: number;
+  timeSpentSeconds?: number;
+};

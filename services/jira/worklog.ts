@@ -16,6 +16,11 @@ export type TSummaryWorklogDataByDate = {
     [accountId: string]: TSummaryWorklog | undefined;
   };
 };
+export type TSummaryWorklogDataByAccount = {
+  [accountId: string]: {
+    [date: string]: TSummaryWorklog | undefined;
+  };
+};
 
 export type TSummaryIssueData = {
   key: string;
@@ -69,8 +74,34 @@ export async function getWorklogsByIssueID(
   }
 }
 
+export async function addWorklog(
+  issueKey: number | string,
+  payload: {
+    comment?: string;
+    started?: string;
+    timeSpentSeconds: number;
+  },
+  options: AxiosRequestConfig
+): Promise<TWorklog> {
+  try {
+    const worklogInfo = await $http.post<TWorklog>(
+      JIRA_API.worklog.ADD(issueKey),
+      payload,
+      options
+    );
+
+    return worklogInfo.data;
+  } catch (error) {
+    console.error(
+      `Error when add worklog for issue#${issueKey}:`,
+      payload,
+      error
+    );
+    throw error;
+  }
+}
 export async function getWorklogDataBySprintId(
-  sprintId: number,
+  sprintId: number | string,
   options: AxiosRequestConfig
 ): Promise<{
   worklogData: TSummaryWorklogDataByDate;

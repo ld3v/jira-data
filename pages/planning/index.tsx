@@ -1,18 +1,34 @@
 import IssueSelector from "@/components/jira/selector/issue";
+import IssueTypeSelector from "@/components/jira/selector/issue-type";
 import UserAvatar from "@/components/jira/user";
 import { useJira, withJira } from "@/context/jira";
-import { message } from "antd";
-import { useRouter } from "next/router";
-import { useEffect } from "react";
+import useStates from "@/hooks/use-states";
 
 const PlanningPage = () => {
-  const { user } = useJira();
+  const {
+    user,
+    board: { selected: boardSelected },
+  } = useJira();
+  const [{ parent, child }, setStates] = useStates<{
+    parent?: string;
+    child?: string;
+  }>({});
 
   return (
     <div className="w-full rounded-md border border-gray-100 p-5">
       <div className="flex items-center justify-between">
         <div className="flex items-center">
           <IssueSelector />
+          {boardSelected ? (
+            <>
+              {" / "}
+              <IssueTypeSelector
+                placeholder="Parent"
+                value={parent}
+                onChange={(v) => setStates({ parent: v })}
+              />
+            </>
+          ) : null}
         </div>
         <UserAvatar />
       </div>

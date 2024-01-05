@@ -141,20 +141,21 @@ const PlanningWorkload = () => {
       });
       return;
     }
-    await getWorkloadByStories(
-      {
-        boardId: board.selected,
-        subImplIssueType,
-        storyIds: stories,
-      },
-      {
-        onLoading: (s) => setStates({ loadingWorkload: s }),
-        onFinish: (d) => {
-          setStates({ workload: d });
-          cb?.();
-        },
-      }
-    );
+    notification.info({ message: "  This feature is removed!" });
+    // await getWorkloadByStories(
+    //   {
+    //     boardId: board.selected,
+    //     subImplIssueType,
+    //     storyIds: stories,
+    //   },
+    //   {
+    //     onLoading: (s) => setStates({ loadingWorkload: s }),
+    //     onFinish: (d) => {
+    //       setStates({ workload: d });
+    //       cb?.();
+    //     },
+    //   }
+    // );
   };
 
   useEffect(() => {

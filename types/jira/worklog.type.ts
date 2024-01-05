@@ -1,6 +1,6 @@
-import { TAuthorJira, TPaginationJira } from '.';
+import { TAuthorJira, TPaginationJira } from ".";
 
-export type TWorklogPagination = Omit<TPaginationJira<TWorklog>, 'values'> & {
+export type TWorklogPagination = Omit<TPaginationJira<TWorklog>, "values"> & {
   worklogs: TWorklog[];
 };
 
@@ -11,7 +11,7 @@ export type TWorklog = {
   comment: string;
   updated: string;
   visibility: {
-    type: 'group' | string;
+    type: "group" | string;
     value: string;
     identifier: string;
   };
@@ -26,13 +26,13 @@ export type TWorklogResponse = {
   key: string; // issueKey, Ex: APM-1234
   summary: string;
   worklogs: {
-    id: TWorklog['id'];
+    id: TWorklog["id"];
     author: {
-      accountId: TAuthorJira['accountId'];
-      displayName: TAuthorJira['displayName'];
+      accountId: TAuthorJira["accountId"];
+      displayName: TAuthorJira["displayName"];
     };
     secondsSpent: number;
-    time: TWorklog['started'];
+    time: TWorklog["started"];
   }[];
   issueType: string;
   status?: string;
