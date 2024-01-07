@@ -18,19 +18,52 @@ import {
   InputNumber,
   Modal,
   Popover,
+  Progress,
   Select,
   Table,
   TableProps,
   notification,
 } from "antd";
 import { useEffect, useMemo, useState } from "react";
+import WorklogPerSprintChart from "../worklog/summary/sprint.chart";
+import { twMerge } from "tailwind-merge";
+
+const WorklogProgress: React.FC<{ spent: number; estimated: number }> = ({
+  spent,
+  estimated,
+}) => {
+  const percent =
+    spent > estimated
+      ? Math.floor(((2 * estimated - spent) / estimated) * 100)
+      : Math.floor((spent / estimated) * 100);
+
+  if (spent > estimated) {
+    return (
+      <Progress percent={100} success={{ percent }} strokeColor="warning" />
+    );
+  }
+
+  return <Progress percent={percent} strokeColor="green" />;
+};
 
 const WorklogByIssueItem: React.FC<{
   issueKey: string;
   issueSummary: string;
   secsSpent: number;
+  secsEstimated: number;
   date: string;
-}> = ({ issueKey, issueSummary, secsSpent, date }) => {
+  logWorkable?: boolean;
+  duedate: string;
+}> = ({
+  issueKey,
+  issueSummary,
+  secsSpent,
+  secsEstimated,
+  date,
+  logWorkable,
+  duedate,
+}) => {
+  const { sprint } = useJira();
   const handleAddWorklog = () =>
     addWorklogByIssueKey(
       { key: issueKey, date, secs: secsSpent },
@@ -46,28 +79,36 @@ const WorklogByIssueItem: React.FC<{
 
   return (
     <div className="px-3 py-2 border border-x-0 border-t-0 border-gray-200 last:border-0">
-      <a
-        href={`/api/go-jira/${issueKey}`}
-        target="_blank"
-        className="text-gray-400"
-      >
-        {issueKey} · {issueSummary}
-      </a>
-      {": "}
-      {sToHm(secsSpent)}{" "}
-      <PlusCircleOutlined
-        onClick={() =>
-          Modal.confirm({
-            title: `Add logwork for issue#${issueKey} on ${date}`,
-            content: `Do you want to add a log (${sToDHm(
-              secsSpent
-            )}) for this issue?`,
-            onOk: () => handleAddWorklog(),
-            okText: "Add",
-            cancelText: "Cancel",
-          })
-        }
-      />
+      <div>
+        <a
+          href={`/api/go-jira/${issueKey}`}
+          target="_blank"
+          className="text-gray-400"
+        >
+          {issueKey} · {issueSummary}
+        </a>{" "}
+        <PlusCircleOutlined
+          className={twMerge(!logWorkable && "hidden")}
+          onClick={() =>
+            Modal.confirm({
+              title: `Add logwork for issue#${issueKey} on ${date}`,
+              content: `Do you want to add a log (${sToDHm(
+                secsSpent
+              )}) for this issue?`,
+              onOk: () => handleAddWorklog(),
+              okText: "Add",
+              okButtonProps: { type: "primary", danger: true },
+              cancelText: "Cancel",
+            })
+          }
+        />
+      </div>
+      <div className="flex items-center justify-between">
+        <div className="w-[160px]">
+          <WorklogProgress spent={secsSpent} estimated={secsEstimated} />
+        </div>
+        {duedate}
+      </div>
     </div>
   );
 };
@@ -122,6 +163,7 @@ const WorklogReport: React.FC = () => {
         ...summaryWorklogByAccount[accountId],
       })
     );
+    console.log(sprint);
 
     return {
       dataSource: dataSourceTransformed,
@@ -144,6 +186,11 @@ const WorklogReport: React.FC = () => {
                           issueKey={i}
                           issueSummary={issueDic[i]?.summary}
                           secsSpent={v.details[i]}
+                          secsEstimated={issueDic[i]?.originalEstimateSeconds}
+                          duedate={issueDic[i]?.duedate}
+                          logWorkable={
+                            sprint.dic[sprintId || ""]?.state === "active"
+                          }
                           key={i}
                           date={d}
                         />
@@ -209,11 +256,13 @@ const WorklogReport: React.FC = () => {
         <ReloadOutlined onClick={() => summaryWorklogData()} spin={loading} />
       </div>
 
+      <WorklogPerSprintChart data={worklogData} loading={loading} />
       <Table
         loading={loading}
         columns={columns}
         dataSource={dataSource}
         pagination={false}
+        rowKey="accountId"
       />
     </>
   );

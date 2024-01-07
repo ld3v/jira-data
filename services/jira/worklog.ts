@@ -28,6 +28,7 @@ export type TSummaryIssueData = {
   originalEstimateSeconds: number;
   remainingEstimateSeconds: number;
   timeSpentSeconds: number;
+  duedate: string;
 }[];
 
 export async function getWorklogsByIssueID(
@@ -136,6 +137,7 @@ export async function getWorklogDataBySprintId(
           remainingEstimateSeconds:
             issue.fields.timetracking.remainingEstimateSeconds,
           timeSpentSeconds: issue.fields.timetracking.timeSpentSeconds,
+          duedate: issue.fields.duedate,
         };
       }
 
@@ -202,6 +204,7 @@ function summaryWorklogByWorklogData(issues: TWorklogResponse[]): {
       originalEstimateSeconds: i.originalEstimateSeconds || 0,
       remainingEstimateSeconds: i.remainingEstimateSeconds || 0,
       timeSpentSeconds: i.timeSpentSeconds || 0,
+      duedate: i.duedate,
     };
   });
 

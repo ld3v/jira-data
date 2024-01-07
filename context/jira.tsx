@@ -104,28 +104,44 @@ const JiraProvider: React.FC<TJiraProviderProps> = ({
         break;
       case "board":
         const boardDic = arrayToDicIfOk(payload.items, "id");
-        setBoardState({
-          ...payload,
-          dic: { ...boardState.dic, ...boardDic, ...(payload.dic || {}) },
-        });
+        setBoardState(
+          payload.items !== undefined
+            ? {
+                ...payload,
+                dic: { ...boardState.dic, ...boardDic, ...(payload.dic || {}) },
+              }
+            : payload
+        );
         break;
       case "sprint":
         const sprintDic = arrayToDicIfOk(payload.items, "id");
-        setSprintState({
-          ...payload,
-          dic: { ...sprintState.dic, ...sprintDic, ...(payload.dic || {}) },
-        });
+        setSprintState(
+          payload.items !== undefined
+            ? {
+                ...payload,
+                dic: {
+                  ...sprintState.dic,
+                  ...sprintDic,
+                  ...(payload.dic || {}),
+                },
+              }
+            : payload
+        );
         break;
       case "issuetype":
         const issueTypeDic = arrayToDicIfOk(payload.items, "id");
-        setIssueTypeState({
-          ...payload,
-          dic: {
-            ...issueTypeState.dic,
-            ...issueTypeDic,
-            ...(payload.dic || {}),
-          },
-        });
+        setIssueTypeState(
+          payload.items !== undefined
+            ? {
+                ...payload,
+                dic: {
+                  ...issueTypeState.dic,
+                  ...issueTypeDic,
+                  ...(payload.dic || {}),
+                },
+              }
+            : payload
+        );
         break;
       case "loading":
         setBoardState({ loading: payload });

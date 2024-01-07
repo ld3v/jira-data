@@ -80,7 +80,7 @@ export const JIRA_API = {
     BY_SPRINT: (sprintId: number | string) =>
       `/rest/agile/1.0/sprint/${numOrStr(
         sprintId
-      )}/issue?fields=worklog,summary,status,priority,timetracking&maxResults=500`,
+      )}/issue?fields=worklog,summary,status,priority,timetracking,duedate,issuelinks&maxResults=500`,
     BY_ISSUE: (issueId: number | string) =>
       `/rest/api/2/issue/${issueId}/worklog`,
     ADD: (issueKey: string | number) => `/rest/api/2/issue/${issueKey}/worklog`,

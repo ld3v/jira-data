@@ -1,6 +1,7 @@
 "use client";
 import { COLORS } from "@/helper/constant";
 import { sortByDate } from "@/helper/sort";
+import { sToHm } from "@/helper/transform";
 import useStates from "@/hooks/use-states";
 import {
   TSummaryWorklog,
@@ -11,12 +12,8 @@ import { useMemo } from "react";
 import {
   Area,
   AreaChart,
-  Bar,
-  BarChart,
   CartesianGrid,
   Legend,
-  Line,
-  LineChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -24,14 +21,6 @@ import {
 } from "recharts";
 
 type TTimeSpentByPerson = { [user: string]: number };
-
-const formaSToHm = (secs: number) => {
-  const hrs = Math.floor(secs / 3600);
-  const mins = Math.floor((secs % 3600) / 60);
-  return [hrs ? `${hrs}h` : undefined, mins ? `${mins}m` : undefined]
-    .filter((i) => i)
-    .join(" ");
-};
 
 const WorklogPerSprintChart: React.FC<{
   data: TSummaryWorklogDataByDate;
@@ -104,8 +93,8 @@ const WorklogPerSprintChart: React.FC<{
               </defs>
               <CartesianGrid stroke="#eee" strokeDasharray="3 3" />
               <XAxis dataKey="date" />
-              <YAxis tickFormatter={formaSToHm} />
-              <Tooltip formatter={formaSToHm} />
+              <YAxis tickFormatter={sToHm} />
+              <Tooltip formatter={sToHm} />
               <Legend />
               {Object.keys(dataRendered.members)
                 .filter((m) => (selectedMember ? m === selectedMember : m))

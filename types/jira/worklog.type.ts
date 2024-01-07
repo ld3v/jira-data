@@ -39,4 +39,5 @@ export type TWorklogResponse = {
   originalEstimateSeconds?: number;
   remainingEstimateSeconds?: number;
   timeSpentSeconds?: number;
+  duedate: string;
 };
